@@ -1,0 +1,17 @@
+- name: Create operator_stack Namespace if it does not exists
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig.file }}"
+    context: "{{ kubeconfig.context }}"
+    name: "{{ namespaces.operator_stack }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create snipe_it Namespace if it does not exists
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig.file }}"
+    context: "{{ kubeconfig.context }}"
+    name: "{{ namespaces.snipe_it }}"
+    api_version: v1
+    kind: Namespace
+    state: present

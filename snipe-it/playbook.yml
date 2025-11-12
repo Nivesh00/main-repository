@@ -1,0 +1,27 @@
+- hosts: kubernetes
+
+  tasks:
+    - name: Playbook Preparations
+      block:
+        - name: Starting Play
+          ansible.builtin.command: date +%s
+          register: start_time
+
+    - name: Create Namespaces
+      ansible.builtin.import_tasks: tasks/00_create_namespaces.yml
+
+    - name: Install MariaDB
+      ansible.builtin.import_tasks: tasks/01_create_mariadb_cluster.yml
+
+    - name: Create App Key
+      ansible.builtin.import_tasks: tasks/02_deploy_snipe_it.yml
+
+    - name: Starting Playbook
+      block:
+        - name: Finishing Play
+          ansible.builtin.command: date +%s
+          register: end_time
+
+        - name: Play done
+          ansible.builtin.debug:
+            msg: "Play duration: {{ (end_time.stdout | int) - (start_time.stdout | int) }} seconds"

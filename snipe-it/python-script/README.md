@@ -1,0 +1,1 @@
+__DEPRECATED__ Python script to deploy Snipe IT

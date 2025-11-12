@@ -1,0 +1,60 @@
+all:
+  children:
+    kubernetes:
+      hosts:
+        localhost:
+          ansible_host: 127.0.0.1
+          ansible_connection: local
+          ansible_python_interpreter: /usr/bin/python3
+          ansible_ssh_private_key_file: <path_to_ssh_file/ssh_file>
+      vars:
+
+        # Kubeconfig Section
+        kubeconfig:
+          file:  # full path, e.g. ~/path/to/config
+          context:
+
+        # Namespaces Section
+        namespaces:
+          operator_stack:
+          snipe_it:
+
+        # Helm Section
+        helm:
+          mariadb:
+            repo_url: https://helm.mariadb.com/mariadb-operator
+            name: mariadb-operator
+            version: 25.10.2
+            crds:
+              release_name: mariadb-operator-crds
+              chart_ref: mariadb-operator/mariadb-operator-crds
+              release_namespace: "{{ namespaces.operator_stack }}"
+            operator:
+              release_name: mariadb-operator
+              chart_ref: mariadb-operator/mariadb-operator
+              release_namespace: "{{ namespaces.operator_stack }}"
+            cluster:
+              release_name: mariadb-cluster
+              chart_ref: mariadb-operator/mariadb-cluster
+              release_namespace: "{{ namespaces.snipe_it }}"
+              user_password:
+
+        # Snipe IT Section
+        snipe_it:
+          ingress_url:
+          # To obtain app_key, copy and paste the result from one of the commands below:
+          # - docker: `docker run --rm -i -t snipe/snipe-it php artisan key:generate --show`
+          # - kubectl: `kubectl run snipe-it --rm -itq --image snipe/snipe-it --command -- php artisan key:generate --show`
+          app_key:
+          image:
+            name: snipe/snipe-it
+            tag: v8.3.4
+          email:
+            server:
+            port:
+            user:
+            password:
+            email_from:
+            driver:
+            name:
+            encryption:
