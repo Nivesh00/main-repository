@@ -1,0 +1,39 @@
+- name: Applying policies to Stack Component
+  ansible.builtin.debug:
+    msg: Applying for component '{{ stack_component.stack_component }}'
+
+- name: Set Namespace for Stack Component
+  set_fact:
+    k8s_namespace: "{{ tenant_prefix }}{{ stack_component.stack_ns }}"
+
+- name: Check if Namespace Exists
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ k8s_config }}"
+    context: "{{ k8s_context }}"
+    kind: Namespace
+    name: "{{ k8s_namespace }}"
+  register: namespace_list
+
+- name: Apply Deny All Policy to Stack Namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ k8s_config }}"
+    context: "{{ k8s_context }}"
+    state: present
+    definition: "{{ lookup('template', 'templates/template_deny_all.yml') | from_yaml }}"
+  when: (namespace_list.resources | length) != 0
+
+- name: Apply Network Policy to Component
+  kubernetes.core.k8s:
+    kubeconfig: "{{ k8s_config }}"
+    context: "{{ k8s_context }}"
+    state: present
+    definition: "{{ lookup('template', 'templates/template_network_policy.yml') | from_yaml }}"
+  vars:
+    k8s_name: "{{ component.name }}"
+    pod_labels: "{{ component.pod_labels }}"
+    ingresses: "{{ component.ingress }}"
+    egresses: "{{ component.egress }}"
+  loop: "{{ stack_component.components }}"
+  loop_control:
+    loop_var: component
+  when: (stack_component.components is defined) and (namespace_list.resources | length) != 0

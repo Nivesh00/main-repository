@@ -1,0 +1,591 @@
+###########################################
+# Open City Platform
+###########################################
+
+all:
+  vars:
+    # (Sub-)Domain for the Installation
+    # DOMAIN: "staging.example.com"
+    DOMAIN: "<domain>"
+    # Helm Proxy repo (leave empty if no proxy is uesed)
+    HELM_REPOSITORY: ""
+    # Namespace in whicht prometheus operator will be installed
+    OPERATOR_STACK: "{{ ENVIRONMENT }}-operator-stack"
+
+    # Name of the envrionment where to deploy to
+    #   - 'prd' (for production environment)
+    #   - 'stg' (for staging environment)
+    #   - 'dev' (for development environment)
+    ENVIRONMENT: '<environment>'
+
+    # Name of the kubeconfig file
+    kubeconfig_file: k8s-master_config
+
+    ## Proxy environment variables
+    proxy_state: present
+    HTTPS_PROXY: ""
+    HTTP_PROXY: ""
+    NO_PROXY: ""
+    https_proxy: ""
+    http_proxy: ""
+    no_proxy: ""
+
+    ## optional root certificate used by components
+    # enterprise_root_cert:
+
+  # Base-Cluster
+  children:
+
+    ######################################
+    # Inventory for Base-Cluster
+    # Microk8s Cluster Setup
+    ######################################
+    kubernetes:
+      hosts:
+        k8s-master:
+          ansible_host: <IP>
+          ansible_python_interpreter: /usr/bin/python3
+          ansible_ssh_private_key_file: <path_to_ssh_file/ssh_file>
+        k8s-node-1:
+          ansible_host: <IP>
+          ansible_python_interpreter: /usr/bin/python3
+          ansible_ssh_private_key_file: <path_to_ssh_file/ssh_file>
+        k8s-node-2:
+          ansible_host: <IP>
+          ansible_python_interpreter: /usr/bin/python3
+          ansible_ssh_private_key_file: <path_to_ssh_file/ssh_file>
+        localhost:
+          ansible_host: 127.0.0.1
+          ansible_connection: local
+          ansible_python_interpreter: /usr/bin/python3
+          ansible_ssh_private_key_file: <path_to_ssh_file/ssh_file>
+      vars:
+        ## Path and filename of the private key to use
+        platform_default_user: "admin"
+
+        # Microk8s settings
+        microk8s_version: '1.25/stable'
+
+        ## DNS addresses for microk8s dns Add-on
+        ## By default it points to Google’s 8.8.8.8 and 8.8.4.4 servers for resolving addresses.
+        ## Enable 'microk8s_dns' variable to change the default dns addresses
+        # Example:
+        # microk8s_dns: '10.10.97.51,10.10.97.52'
+
+        ## OpenEBS as a open-source storage solution  for cluster
+        ## Enable 'install_openebs_storage' variable to install OpenEBS storage solution
+        microk8s_openebs_addon: enable
+
+        default_storage_class: openebs-hostpath
+
+        # Ingress Controller
+        k8s_ingress_class: 'public'
+
+        # Domain for the GitLab CE Installation
+        # gitlab.<your-domain>
+        gitlab_domain: '<DOMAIN>'
+
+        ## Required configuration (https://docs.gitlab.com/runner/install/kubernetes.html#required-configuration)
+        ## 'gitlabUrl' already use the gitlab_domain variable
+        ## GitLab Runner Registration Token, provided by the Gitlab Admin
+        RUNNER_REGISTRATION_TOKEN: '<token>'
+    #########################################
+
+    # Core Platform
+    #########################################
+    # Inventory for Core Platform
+    #
+    #########################################
+    controller:
+      hosts:
+        localhost:
+          ansible_host: 127.0.0.1
+          ansible_connection: local
+          ansible_python_interpreter: /usr/bin/python3
+      vars:
+        ## Email Server values and credentials
+        inv_email:
+          server: "<email_server>"
+          port: "<port>"
+          user: "<user>"
+          password: "<password>"
+          email_from: "<email>"
+
+        ## Registry Settings
+        inv_registry:
+          #dockerio: "docker.io"
+          dockerio: "docker.io"
+          #quayio: "quay.io"
+          quayio: "quay.io"
+          #zalando: "registry.opensource.zalan.do"
+          zalando: "registry.opensource.zalan.do"
+
+        ## Kubernetes general settings
+        inv_k8s:
+          config:
+            context: "microk8s"
+          ingress_class: public
+          disable_ipv6: false
+          ### Storage class for k8s PersistentVolumes (https://kubernetes.io/docs/concepts/storage/storage-classes/)
+          storage_class:
+            rwo: "openebs-hostpath"
+            rwo_retain: "openebs-hostpath"
+            provisioner: "openebs.io/local"
+          gitlab_access:
+            user_email: "<email>"
+            user: "<user>"
+            token: "<token>"
+          cert_manager:
+            le_email: "<email>"
+            staging_issuer_name: "<letsencrypt-staging>"
+            prod_issuer_name: "<letsencrypt-production>"
+
+        ## Operator stack
+        inv_op_stack:
+          ns_name: "{{ OPERATOR_STACK }}"
+          cert_manager_operator:
+            enable: true
+            ns_name: "{{ OPERATOR_STACK }}"
+          postgres_operator:
+            enable: true
+            ns_name: "{{ OPERATOR_STACK }}" 
+            logical_backup:
+              enabled: false
+              access_key: ""
+              bucket: ""
+              endpoint: ""
+              region: ""
+              secret: ""
+              schedule: "" # Cron schedule for backups for example "0 0 * * *" for daily backups at midnight
+              retention_time: "" # S3 retention time for stored backups for example "2 week" or "7 days"
+          minio_operator:
+            enable: true
+            enable_console_ingress: false
+            ns_name: "{{ OPERATOR_STACK }}"
+          keycloak_operator:
+            enable: true
+            ns_name: "{{ OPERATOR_STACK }}" 
+          keel_operator:
+            enable: true
+            ns_name: "{{ OPERATOR_STACK }}" 
+            admin: "admin@{{ DOMAIN }}"
+            password: "<create-keel-password>"
+
+        ## Identity management stack
+        inv_idm:
+          ns_name: "{{ ENVIRONMENT }}-idm-stack"
+          db_ns_name: "{{ ENVIRONMENT }}-idm-db-stack"
+
+          ## IDM Master Admin
+          platform:
+            admin_first_name: "Platform"
+            admin_surname: "Admin"
+            admin_email: "admin@{{ DOMAIN }}"
+            master_username: "admin@{{ DOMAIN }}"
+            master_password: "<password>" #Password requirements: Take a look at the inventory-guide
+          ## IDM General Values
+          keycloak:
+            realm_name: "operations"
+            k8s_secret_name: "master-secret"
+            scope: "openid"
+            enable_events: false
+            enable_adminEvents: false
+            log_level: "INFO"
+            theme: "ocp-custom keycloak"
+            theme_url: "https://gitlab.com/urban-dataspace-platform/core-platform/-/raw/master/02_core_platform/templates/04_idm_keycloak/customization/custom-theme/theme.jar"
+            enable_logical_backup: false
+          group:
+            default_tenant_name: "default_dataspace"
+
+        ## API Management
+        inv_am:
+          apim:
+            ns_name: "{{ ENVIRONMENT }}-apim-stack"
+            management_log_level: "INFO"
+            gateway_log_level: "INFO"
+            default_basic_auth: "<basic auth>" #Requirements: Take a look at the inventory-guide
+            portal_application: "Portal Application"
+          apisix:
+            ns_name: "{{ ENVIRONMENT }}-api-management-stack"
+            loki_namespace: "{{ ENVIRONMENT }}-observability-stack" # Set namespace in which Loki is deployed. This will differ depending on if the monitoring stack of the platform is deployed or if an external monitoring stack is used.
+            prometheus_namespace: "{{ ENVIRONMENT }}-observability-stack" # Set namespace in which Prometheus is deployed. This will differ depending on if the monitoring stack of the platform is deployed or if an external monitoring stack is used. 
+
+
+        ## Context Management
+        inv_cm:
+          fiware:
+            ns_name: "{{ ENVIRONMENT }}-context-management-stack"
+          frost:
+            ns_name: "{{ ENVIRONMENT }}-frost-stack"
+          stellio:
+            ns_name: "{{ ENVIRONMENT }}-ngsi-stack"
+            # set_tcp_keepalive: false # Set to true if the environment in which Stellio is deployed has known issues with idle TCP connections. Optional.
+
+        ## Public Components
+        inv_pub:
+          general_oauth_proxy:
+            ns_name: "{{ ENVIRONMENT }}-public-proxy-stack"
+
+        ## Data Management
+        inv_dm:
+          ns_name: "{{ ENVIRONMENT }}-data-management-stack"
+          grafana:
+            rbac:
+              create: false
+              psp_enabled: false
+              psp_use_app_armor: false
+            service_account:
+              create: false
+            datasources:
+              timescale_name: "TimescaleDB"
+              stellio_postgres_name: "StellioDB"
+        
+        ## KomMonitor
+        inv_kom:
+          ns_name: "{{ ENVIRONMENT }}-kommonitor-stack"
+
+        inv_gd:
+          ns_name: "{{ ENVIRONMENT }}-geodata-stack"
+
+        inv_velero:
+          enable: false
+          ns_name: "velero" 
+          # certificate: # optional certificate to be used by Velero 
+          operations_backup:
+            backup_storage_location: "ionos-s3"
+            schedule: "0 0 * * *" # Every day at midnight
+            ttl: "168h0m0s" # 7 days
+          operations_backup_2:
+            enable: false
+            backup_storage_location: "contabo-s3"
+            schedule: "0 0 * * *" # Every day at midnight
+            ttl: "168h0m0s" # 7 days
+          exclude_namespaces: # Namespaces to exclude from backup. The namespace for Velero should alway be excluded. 
+                - "velero"
+                - "kube-system"
+                - "kube-public"
+                - "kube-node-lease"
+                - "cloud-init-settings"
+          backup_storage_locations: 
+            - location_name: "ionos-s3"
+              access_key: ""
+              bucket: ""
+              region: ""
+              endpoint: ""
+              secret_key: ""
+              s3ForcePathStyle: ""
+            - location_name: "contabo-s3"
+              access_key: ""
+              bucket: ""
+              region: ""
+              endpoint: ""
+              secret_key: ""
+              s3ForcePathStyle: ""
+        
+        inv_documentation:
+          ns_name: "{{ ENVIRONMENT }}-documentation-stack"
+
+        # Monitoring stack with prometheus, grafana, alertmanager, loki and promtail
+        inv_ml:
+          enable: true
+          ns_name: "{{ ENVIRONMENT }}-observability-stack"
+          prometheus:
+            enable: true
+            replicas: 1
+            storage_size: 20Gi
+            retention_days: 14d
+          grafana:  
+            enable: true
+            deploy_default_dashboards: true
+            storage_size: 10Gi
+            deploy_dashboards:
+              minio: true
+              apisix: true
+          alertmanager:
+            enable: true
+            replicas: 1
+            storage_size: 5Gi
+            ingress:
+              enable: false
+            receivers:
+              slack_webhook_backup: ""
+              slack_webhook_postgres: ""
+              slack_webhook_critical: ""
+              slack_webhook_warning: ""
+            critical_alerts:
+              - KubePodCrashLooping
+              - KubePodNotReady
+              - KubeJobFailed
+              - KubeContainerWaiting
+              - KubePersistentVolumeFillingUp
+              - KubePersistentVolumeInodesFillingUp
+              - KubePersistentVolumeErrors
+              - KubeNodeNotReady
+              - KubeNodeUnreachable
+              - NodeFilesystemSpaceFillingUp
+              - NodeFilesystemAlmostOutOfSpace
+              - NodeFilesystemFilesFillingUp
+              - NodeFilesystemAlmostOutOfFiles
+            warning_alerts:
+              - KubeletTooManyPods
+          loki:
+            enable: true
+            deploy_default_dashboards: true
+            replicas: 1
+            retention_period: "168h" # 7 days
+            storage_size: 20Gi
+            memory_limit: 500Mi # For dev environments, 500Mi should be enough. Though for a better experience, production environments should have at least 2Gi
+            gateway_replicas: 1
+          promtail:
+            enable: true  
+          exporters:
+            postgres_exporter:
+              enable: true
+            patroni_exporter:
+              enable: true
+
+        ## Replica values
+        inv_replicas:
+          keycloak:
+            db: 1
+            app: 1
+          gravitee:
+            api_mgmt: 1
+            gateway: 1
+          api_mgmt:
+            apisix: 1
+            etcd: 1
+          frost:
+            db: 1
+            mqtt: 1
+            http: 1
+          timescale:
+            db: 1
+          cm:
+            api_gateway: 1
+            kafka: 1
+            postgresql: 1
+            search_service: 1
+            subscription_service: 1
+
+        inv_network_policy:
+          use_default_policy: true
+
+        ## Tenants
+        inv_tenants:
+          - tenant_realm: "<tenant realm>" # Leader tenant
+            tenant_domain: "{{ DOMAIN }}" # change if tenant uses other domain as operations
+            tenant_prefix: "<tenant prefix>" # prefix for tenant K8s namespaces
+            mailserver:
+              user: "{{ inv_email.user }}"	  
+              password: "{{ inv_email.password }}"
+              server: "{{ inv_email.server }}"
+              port: "{{ inv_email.port }}"
+              email_from: "{{ inv_email.email_from }}"
+            documentation:
+              enable: false
+              domain: "docs.{{ DOMAIN }}"
+              image_project: "registry.gitlab.com/urban-dataspace-platform/documentation"
+              image_tag: "latest"
+              gitlab_user: ""
+              gitlab_token: ""
+              shared_documentation: false
+              public: false
+            idm: 
+              enable: true
+            general_oauth_proxy:
+              enable: true
+              ### server specific cookie for the secret; create a new one with `openssl rand -base64 32 | head -c 32 | base64`
+              cookie_secret: "<cookie_secret>"
+            minio:
+              enable: true
+              tenant:
+                enable: true
+                name: "<tenant-name>"
+                servers: 1 # Server und VolumePerServer must be minimum 4 when used in Production: https://min.io/docs/minio/kubernetes/upstream/operations/concepts.html
+                volumesPerServer: 1
+                capacityPerVolume: "20Gi"
+                max_file_size: "5g" # Sets annotation on NGINX Ingress to allow for uploading files up to a specified size. For example "5g" for 5GB.
+                admin_user: "minio_admin" #Requirements: no whitespaces
+                admin_pass: "<minio-password>" #Requirements: no whitespaces
+                buckets:
+                  - "bucket-1"
+                  - "bucket-2"
+            timescale:
+              enable: true
+              enable_logical_backup: false
+              storage_size: "20Gi"
+            fiware: 
+              enable: false
+              mongo:
+                initdb_database: "orion"
+                initdb_root_username: "<username>"
+                initdb_root_password: "<password>"
+              orion:
+                mongodb_user: "<mongodb-user>"
+                mongodb_password: "<mongodb-password>"
+            stellio:
+              enable: true
+              enable_logical_backup: false
+              storage_size: "50Gi"
+              use_quantumleap: true # Set to true if QuantumLeap should be used for storing historical data
+              api_gateway:
+                enable_compression: false
+              kafka:
+                cluster_id: "<cluster-id>" # 22 random characters. No special characters allowed
+              context_hoster:
+                enable: true
+                image_project: "registry.gitlab.com/urban-dataspace-platform/utils/ngsi-ld-context-hoster"
+                image_tag: "main"
+                git_user: ""
+                git_token: "" # For best practice, use a deploy token with read access to the git repository
+            frost:
+              enable: true
+              mqtt_enable: true
+              enable_logical_backup: false 
+            apim:
+              enable: false
+            apisix:
+              enable: true
+              api_credentials:
+                admin_role: "<admin-role-api-key>" # 32 characters.
+                viewer_role: "<viewer-role-api-key>" # 32 characters.
+            grafana:
+              enable: true
+              admin: "grafana_admin"
+              password: "<password>"
+              usergroupmapping: # Usergroupmapping Grafana Keycloak
+                enable: false
+              #subdomain: "subdomain" # insert a subdomain here, if you want another subdomain for grafana than grafana.DOMAIN
+            pgadmin:
+              enable: true
+              env_email: "admin@{{ DOMAIN }}"
+              env_password: "<password>"
+              config_enhanced_cookie_protection: "True"
+            kommonitor: 
+              enable: false
+              is_prod: false
+              enable_logical_backup: false
+              title: "KomMonitor Beispiel"
+              localStoragePrefix: "kommonitor-beispiel" # e.g. "kommonitor-projectname" (all lowercase)
+              organization: "beispiel"
+              organization_contact: "beispiel@mail.de" # e.g. a contact email for the organization. Can also be a non-existing email address.
+              startLocation:
+                lat:  # e.g. 51.0504
+                lon:  # e.g. 13.7373
+                initialZoom: # e.g. 12
+            nr_flows:
+            - enable: true
+              name: "nodered-nr1"
+              gitlab:
+                access_user: ""
+                access_mail: ""
+                write_read_token: ""    
+              git_url: "" # If left empty, no git repo will be imported
+              flow_name: "flow.json"
+              # grafana_dashboards: "dashboards/grafana/" # optional. If set, deploys dashboards from NR Projects Git repository found in specified folder.
+              # client_certs: # Is optional, i.e. the variable can also not be set. 
+              #   enable: true
+              #   client_cert:
+              #   client_key:
+              # network_policy: "default" # Is optional, i.e. the variable can also not be set. Defaults to default. Possible values: default, allow_external_only
+              # use_ssh: false # Is optional, i.e. the variable can also not be set. Defaults to false 
+              env_vars: # Set to [] to leave empty
+                ngsild_tenant: ""
+              # limits: # Is optional, i.e. the variable can also not be set. 
+              #   cpu: ""
+              #   memory: ""
+              # deployment_strategy: "RollingUpdate" # Is optional, i.e. the variable can also not be set. Defaults to Recreate. Old deployments will need "RollingUpdate"
+            - enable: true
+              name: "nodered-nr2"
+              gitlab:
+                access_user: ""
+                access_mail: ""
+                write_read_token: ""    
+              git_url: ""
+              flow_name: "flow.json"
+              env_vars: # Set to [] to leave empty
+                ngsild_tenant: ""
+            edag_dashboard:
+              enable: true
+              namespace: "{{ ENVIRONMENT }}-edag-stack"
+              domain: "dashboard.{{ DOMAIN }}"
+              tenant: "public" # Is for now used for ingress redirect only. For example, dashboards.{{DOMAIN}} is redirected to dashboards.{{DOMAIN}}/edag. Same if frontend_domain is set.
+              # frontend_domain: "dashboards.{{ DOMAIN }}" is optional
+              encryption_key: "" # generate with openssl rand -hex 32
+              mapbox_token: ""
+              cookiebot_id: ""
+              mail_to: ""
+            analytics:
+              enable: true
+              ns_name: "{{ ENVIRONMENT }}-analytics-stack"
+              enable_logical_backup: false
+              mapbox_api_token: ""
+              # Generate once per System with > openssl rand -base64 42
+              db_secret: ""
+              admin_user_password: "" # No dollar sign allowed
+              admin_user_name: admin
+              redis_auth_pasword: ""
+            geodata:
+              enable: true
+              ns_name: "{{ ENVIRONMENT }}-geodata-stack"
+              gitlab_user: "<gitlab_user>"
+              gitlab_token: "<gitlab_token>>"
+              masterportal:
+                enable: true
+                appname: "geoportal"
+                image_project: "registry.gitlab.com/urban-dataspace-platform/use_cases/geodata/geodata_customizing/geoportal"
+                image_tag: "main"
+              portal_backend:
+                enable: true
+                image_project: "registry.gitlab.com/urban-dataspace-platform/use_cases/geodata/geodata_customizing/geoportal_backend"
+                image_tag: "main"
+                keycloak_pub_signing_key: <Key> # retrieve via https://idm.{{ DOMAIN }}/auth/realms/{{ REALM }}
+                public_role: "ds_open_data"
+              geoserver:
+                enable: true
+                geoserverUser: "admin"
+                geoserverPassword: ""
+                dataDirSize: "8Gi"
+                cacheDirSize: "8Gi"
+                open_data_workspace: "ds_open_data"
+              mapfish:
+                enable: true
+                image_project: "registry.gitlab.com/urban-dataspace-platform/use_cases/geodata/geodata_customizing/mapfish-print"
+                image_tag: "latest"
+              gisdb:
+                enable_logical_backup: false
+                storage_size: 10Gi
+              citydb:
+                enable: false
+                wfs:
+                  db_service: <service>
+                  db_port: <db_port>
+                  db_name: <db_name>
+                  db_schema: <db_schema>
+            inv_mds:
+              enable: true
+              enable_logical_backup: false
+              ns_name: "{{ ENVIRONMENT }}-metadata-stack"
+              ckan:
+                app_host: ckan
+                ckan_plugins: dcat dcatde scheming_datasets oauth
+                locale_default: "de"
+                locales_offered: "de en"
+                imagepath: "registry.gitlab.com/urban-dataspace-platform/use_cases/ckan-reboot/docker-ckan/main"
+                imagetag: "v1.0.0"
+            velero: 
+              enable: false
+              tenant_backup:
+                backup_storage_location: "ionos-s3"
+                schedule: "0 0 * * *" # Every day at midnight
+                ttl: "168h0m0s" # 7 days
+              tenant_backup_2:
+                enable: false
+                backup_storage_location: "contabo-s3"
+                schedule: "0 0 * * *" # Every day at midnight
+                ttl: "168h0m0s" # 7 days
+            # observability: # Is optional. Can be erased if not needed.
+            #   sensor_anomaly_alerting:
+            #     enable: true
+            #     mail_to: ""

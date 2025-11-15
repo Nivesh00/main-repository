@@ -1,0 +1,54 @@
+data:
+# operator stack
+  - stack_component: operator
+    stack_ns: "{{ inv_op_stack.ns_name }}"
+    components:
+      - name: ""
+        pod_labels:
+          - name: ""
+            value: ""
+        ingress: []
+        egress: []
+
+# identity management stack
+  - stack_component: idm
+    stack_ns: "{{ inv_idm.ns_name }}"
+    components:
+      - name: ""
+        pod_labels:
+          - name: ""
+            value: ""
+        ingress: []
+        egress: []
+
+  - stack_component: idm_db
+    stack_ns: "{{ inv_idm.db_ns_name }}"
+    components:
+      - name: ""
+        pod_labels:
+          - name: ""
+            value: ""
+        ingress: []
+        egress: []
+
+# velero stack
+  - stack_component: velero
+    stack_ns: "{{ inv_velero.ns_name }}"
+    components:
+      - name: ""
+        pod_labels:
+          - name: ""
+            value: ""
+        ingress: []
+        egress: []
+
+# monitoring stack
+  - stack_component: ml
+    stack_ns: "{{ inv_ml.ns_name }}"
+    components:
+      - name: ""
+        pod_labels:
+          - name: ""
+            value: ""
+        ingress: []
+        egress: []

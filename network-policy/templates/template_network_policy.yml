@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: "{{ k8s_name }}"
+  namespace: "{{ k8s_namespace }}"
+
+spec:
+  podSelector: 
+    matchLabels:
+    # Labels are AND'ed
+    {% for label in pod_labels %}
+      {{ label.name }}: {{ label.value }}
+    {% endfor %}
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+# Check if (non_)tenants[].components[].ingress[] is empty
+{% if ingresses | length > 0  %}
+  ingress:
+  # Add namespace and labels
+  {% for ingress in ingresses %}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: "{{ ingress.ns_name }}"
+          podSelector:
+            matchLabels:
+              {{ ingress.pod_labels.name }}: "{{ ingress.pod_labels.value }}"
+  {% endfor %}
+{% endif %}
+
+# Check if (non_)tenants[].components[].egress[] is empty
+{% if egresses | length > 0  %}
+  egress:
+  # Add namespace and labels
+  {% for egress in egresses %}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: "{{ egress.ns_name }}"
+          podSelector:
+            matchLabels:
+              {{ egress.pod_labels.name }}: "{{ egress.pod_labels.value }}"
+  {% endfor %}
+{% endif %}

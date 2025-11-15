@@ -1,0 +1,46 @@
+# Prepare for non-tenant policies
+- name: Set Prefix for Namespaces
+  set_fact:
+    tenant_prefix: ""
+  when: not (tenant_net_pol | bool)
+  tags: always
+
+- name: Load Non-Tenant File into 'network_policy_dict' Variable
+  ansible.builtin.include_vars:
+    file: vars/network_policy/00_non_tenant.yml
+    name: network_policy_dict
+  when: not (tenant_net_pol | bool)
+
+# Prepare for tenant policies
+- name: Set Prefix for Namespaces
+  set_fact:
+    tenant_prefix: "{{ tenant.tenant_prefix }}-"
+  when: tenant_net_pol | bool 
+  tags: always
+
+# Use tenant policy named 01_default_tenant.yml
+- name: Load Tenant Variable File into 'network_policy_dict' Variable
+  ansible.builtin.include_vars:
+    file: vars/network_policy/01_default_tenant.yml
+    name: network_policy_dict
+  when: (tenant_net_pol | bool) and inv_network_policy.use_default_policy
+
+# Use tenant policy named after inv_tenant.tenant_prefix
+- name: Load Tenant Variable File into 'network_policy_dict' Variable
+  ansible.builtin.include_vars:
+    file: vars/network_policy/{{ tenant.tenant_prefix }}.yml
+    name: network_policy_dict
+  when: (tenant_net_pol | bool) and not inv_network_policy.use_default_policy
+
+- ansible.builtin.set_fact:
+    network_policy: "{{ network_policy_dict.data }}"
+
+- name: Apply Network Policies to Stack Components
+  ansible.builtin.include_tasks: 
+    file: tasks/01_apply_network_policy.yml
+    apply:
+      tags: ['network_policy', 'tenant']
+  loop: "{{ network_policy }}"
+  loop_control:
+    loop_var: stack_component
+  no_log: true

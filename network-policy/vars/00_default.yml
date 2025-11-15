@@ -1,0 +1,77 @@
+---
+# file: 03_setup_k8s_platform/vars/default.yml
+
+# Kubernetes
+K8S_KUBECONFIG_PATH: "{{ lookup('env','HOME') }}/.kube"
+k8s_config: "{{ K8S_KUBECONFIG_PATH }}/{{ kubeconfig_file }}"
+k8s_context: "{{ inv_k8s.config.context }}"
+
+db_common:
+  keycloak_postgres:
+    admin:
+      k8s_secret: "postgres.keycloak-keycloak.credentials.postgresql.acid.zalan.do"
+    user:
+      k8s_secret: "keycloak-owner-user.keycloak-keycloak.credentials.postgresql.acid.zalan.do"
+    port: "5432"
+  quantumleap_postgres:
+    admin:
+      k8s_secret: "postgres.data-timescale.credentials.postgresql.acid.zalan.do"
+    user:
+      k8s_secret: "quantumleap-owner-user.data-timescale.credentials.postgresql.acid.zalan.do"
+    read_only_user:
+      k8s_secret: "quantumleap-reader-user.data-timescale.credentials.postgresql.acid.zalan.do"
+  gravitee_mongo:
+    admin:
+    user:
+      k8s_secret: "gravitee-mongo-user-secret"
+  orion_mongo:
+    admin:
+    user:
+      k8s_secret: "orion-mongo-user-secret"
+  stellio_postgres:
+    read_only_user: 
+      k8s_secret: "stellio-search-reader-user.stellio-data.credentials.postgresql.acid.zalan.do"
+
+K8S_NAMESPACE_GEODATA: geodata-stack
+K8S_NAMESPACE_CKAN: metadata-stack
+K8S_NAMESPACE_FROST: frost-stack
+
+K8S_NAMESPACE_PUBLIC: public-stack
+K8S_NAMESPACE_DATAFLOWSTACK: dataflow-stack
+K8S_NAMESPACE_DATA_MANAGEMENT: data-management-stack
+K8S_NAMESPACE_OBSERVABILITY: observability-stack
+K8S_NAMESPACE_CONTEXT_MANAGEMENT_STACK: context-management-stack
+
+# GitLab-API-URL
+GITLAB_API_URL: "https://gitlab.com/api/v4"
+
+## IDM Clients
+IDM_CLIENT:
+  API_ACCESS: "api-access"
+  GRAFANA: "grafana"
+  GRAVITEE: "gravitee"
+  ADMIN_TOOLS: "admin_tools"
+  MASTERPORTAL: "masterportal"
+  SUPERSET: "superset"
+  MASTERPORTAL_PUBLIC: "public_masterportal"
+  CKAN: "ckan"
+  MINIO: "minio"
+  PGADMIN: "pgadmin"
+  SC_DASHBOARD: "scs-frontend"
+  KOMMONITOR_DATA_MANAGEMENT: "kommonitor-data-management"
+  KOMMONITOR_HARVESTER: "kommonitor-harvester"
+  KOMMONITOR_PROCESSING_ENGINE: "kommonitor-processing-engine"
+  KOMMONITOR_PROCESSING_SCHEDULER: "kommonitor-processing-scheduler"
+  KOMMONITOR_CLIENT_CONFIG: "kommonitor-client-config"
+  KOMMONITOR_WEB_CLIENT: "kommonitor-web-client"
+  KOMMONITOR_IMPORTER: "kommonitor-importer"
+  DOCUSAURUS: "docusaurus"
+
+## IDM Groups
+inv_idm.group.default_tenant_name: "default_dataspace"
+
+general:
+  image_pullPolicy: IfNotPresent
+
+ansible_debug:
+  no_log: "true"
