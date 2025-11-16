@@ -369,6 +369,7 @@ all:
             subscription_service: 1
 
         inv_network_policy:
+          enable: true
           use_default_policy: true
 
         ## Tenants
