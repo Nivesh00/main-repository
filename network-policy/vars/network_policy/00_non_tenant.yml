@@ -1,17 +1,19 @@
 data:
 # operator stack
-  - stack_component: operator
+  - enable: false
+    stack_component: operator
     stack_ns: "{{ inv_op_stack.ns_name }}"
     components:
-      - name: ""
+      - name: "test-policy"
         pod_labels:
-          - name: ""
-            value: ""
+          - name: "test1"
+            value: "value1"
         ingress: []
         egress: []
 
 # identity management stack
-  - stack_component: idm
+  - enable: false
+    stack_component: idm
     stack_ns: "{{ inv_idm.ns_name }}"
     components:
       - name: ""
@@ -21,7 +23,8 @@ data:
         ingress: []
         egress: []
 
-  - stack_component: idm_db
+  - enable: false
+    stack_component: idm_db
     stack_ns: "{{ inv_idm.db_ns_name }}"
     components:
       - name: ""
@@ -32,7 +35,8 @@ data:
         egress: []
 
 # velero stack
-  - stack_component: velero
+  - enable: false
+    stack_component: velero
     stack_ns: "{{ inv_velero.ns_name }}"
     components:
       - name: ""
@@ -43,7 +47,8 @@ data:
         egress: []
 
 # monitoring stack
-  - stack_component: ml
+  - enable: false
+    stack_component: ml
     stack_ns: "{{ inv_ml.ns_name }}"
     components:
       - name: ""
