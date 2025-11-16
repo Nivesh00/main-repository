@@ -11,10 +11,15 @@
 
     # Apply Network Policies to non-tenants
     - name: Run Network Policies Tasks for Non-Tenants
-      ansible.builtin.include_tasks: tasks/00_prepare_network_policy.yml
+      ansible.builtin.include_tasks: 
+        file: tasks/00_prepare_network_policy.yml
+        apply:
+          tags: ['network_policy', 'non_tenant']
       vars:
         tenant_net_pol: false
-      tags: ['network_policy', 'non_tenant']
+      no_log: true
+      when: inv_network_policy.enable | bool
+      tags: always
 
     # Apply Network Policies to tenants
     - name: Run Network Policies Tasks for Tenants
@@ -28,4 +33,5 @@
       loop_control:
         loop_var: tenant
       no_log: true
+      when: inv_network_policy.enable | bool
       tags: always
