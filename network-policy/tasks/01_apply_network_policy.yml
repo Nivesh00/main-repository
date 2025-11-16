@@ -14,15 +14,20 @@
     name: "{{ k8s_namespace }}"
   register: namespace_list
 
+- ansible.builtin.debug:
+    msg: Dump for namespaces {{ k8s_namespace }} {{ namespace_list.resources }}
+
 - name: Apply Deny All Policy to Stack Namespace
   kubernetes.core.k8s:
     kubeconfig: "{{ k8s_config }}"
     context: "{{ k8s_context }}"
     state: present
     definition: "{{ lookup('template', 'templates/template_deny_all.yml') | from_yaml }}"
-  when: (namespace_list.resources | length) != 0
+  when:
+    - namespace_list.resources | length != 0
+    - stack_component.enable | bool
 
-- name: Apply Network Policy to Component
+- name: Apply Custom Network Policy to Component
   kubernetes.core.k8s:
     kubeconfig: "{{ k8s_config }}"
     context: "{{ k8s_context }}"
@@ -36,4 +41,7 @@
   loop: "{{ stack_component.components }}"
   loop_control:
     loop_var: component
-  when: (stack_component.components is defined) and (namespace_list.resources | length) != 0
+  when:
+    - stack_component.components is defined 
+    - namespace_list.resources | length != 0
+    - stack_component.enable | bool
