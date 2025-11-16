@@ -1,6 +1,7 @@
 data:
 # api management stack
-  - stack_component: apim
+  - enable: false
+    stack_component: apim
     stack_ns: "{{ inv_am.apim.ns_name }}"
     components:
       - name: ""
@@ -10,7 +11,8 @@ data:
         ingress: []
         egress: []
 
-  - stack_component: apisix
+  - enable: false
+    stack_component: apisix
     stack_ns: "{{ inv_am.apisix.ns_name }}"
     components:
       - name: ""
@@ -21,7 +23,8 @@ data:
         egress: []
 
 # context management stack
-  - stack_component: fiware
+  - enable: false
+    stack_component: fiware
     stack_ns: "{{ inv_cm.fiware.ns_name }}"
     components:
       - name: ""
@@ -31,7 +34,8 @@ data:
         ingress: []
         egress: []
 
-  - stack_component: frost
+  - enable: false
+    stack_component: frost
     stack_ns: "{{ inv_cm.frost.ns_name }}"
     components:
       - name: ""
@@ -41,7 +45,8 @@ data:
         ingress: []
         egress: []
 
-  - stack_component: stellio
+  - enable: false
+    stack_component: stellio
     stack_ns: "{{ inv_cm.stellio.ns_name }}"
     components:
       - name: ""
@@ -52,7 +57,8 @@ data:
         egress: []
 
 # public stack
-  - stack_component: oauth_proxy
+  - enable: false
+    stack_component: oauth_proxy
     stack_ns: "{{ inv_pub.general_oauth_proxy.ns_name }}"
     components:
       - name: ""
@@ -63,7 +69,8 @@ data:
         egress: []
 
 # data management stack
-  - stack_component: dm
+  - enable: false
+    stack_component: dm
     stack_ns: "{{ inv_dm.ns_name }}"
     components:
       - name: ""
@@ -74,7 +81,8 @@ data:
         egress: []
 
 # kommonitor stack
-  - stack_component: kom
+  - enable: false
+    stack_component: kom
     stack_ns: "{{ inv_kom.ns_name }}"
     components:
       - name: kommonitor-data-management
@@ -103,7 +111,8 @@ data:
               value: kommonitor-data-management
 
 # geodata stack
-  - stack_component: gd
+  - enable: false
+    stack_component: gd
     stack_ns: "{{ inv_gd.ns_name }}"
     components:
       - name: ""
@@ -114,7 +123,8 @@ data:
         egress: []
 
 # documentation stack
-  - stack_component: doc
+  - enable: false
+    stack_component: doc
     stack_ns: "{{ inv_documentation.ns_name }}"
     components:
       - name: ""
